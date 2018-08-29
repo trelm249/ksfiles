@@ -42,5 +42,6 @@ Kickstart will request the following information:
 
 ` sudo virt-install --connect=qemu:///system --network bridge:virbr1 --ram 512 --vcpus=1 --initrd-inject=/var/lib/libvirt/images/isos/server-ks.cfg --extra-args="ks=file:/server-ks.cfg console=tty0 console=ttyS0,115200" --name=server1 --disk pool=default,size=40 --location /var/lib/libvirt/images/isos/rhel7-server.iso`  
 `sudo virt-install --connect=qemu:///system --network bridge:virbr0 --ram 512 --vcpus=1 --initrd-inject=/var/lib/libvirt/images/isos/c7server.cfg --extra-args="ks=file:/c7server.cfg" --name=c7-server1 --disk pool=default,size=40 --location /var/lib/libvirt/images/isos/c7server.iso`  
+`sudo virt-install --connect=qemu:///system --network bridge:virbr0 --ram 1200 --vcpus=1 --initrd-inject=/var/lib/libvirt/images/isos/fserver.cfg --extra-args="ks=file:/fserver.cfg" --name=fserver1 --disk pool=default,size=40 --location /var/lib/libvirt/images/isos/f28server.iso`  
 
 
