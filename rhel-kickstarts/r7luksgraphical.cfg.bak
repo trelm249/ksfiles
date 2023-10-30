@@ -50,7 +50,6 @@ logvol swap --fstype swap --name=lv_swap --vgname=sysvg --size=1000 --label=SWAP
 @development
 @multimedia
 @smart-card
-@X Window System
 authconfig-gtk
 open-vm-tools
 dracut-fips
@@ -91,6 +90,35 @@ scap-security-guide
 -tftp-server
 -vsftpd
 -ypserv
+%end
+
+%pre
+#@section added to work on vt3
+exec < /dev/tty3 > /dev/tty3
+chvt 3
+echo Enter Hostname
+read HOSTNAME
+chvt 1
+echo $HOSTNAME > /tmp/hostname
+echo 
+%end
+ 
+%post --nochroot
+###update /etc/hosts file and network config
+HOSTNAME=$(cat /tmp/hostname)
+echo $HOSTNAME >/mnt/sysimage/etc/hostname
+###No IPV6
+echo "NOZEROCONF=yes" >> /mnt/sysimage/etc/sysconfig/network
+echo "NETWORKING_IPV6=no" >> /mnt/sysimage/etc/sysconfig/network
+echo "IPV6INIT=no" >> /mnt/sysimage/etc/sysconfig/network
+echo "options ipv6 disable=1" >> /mnt/sysimage/etc/modprobe.d/stig.conf
+#update config file for nic
+sed -i 's/^[[:space:]]*::/#::/' /mnt/sysimage/etc/hosts
+####
+# Change the default firewall zone to drop
+####
+firewall-offline-cmd --permanent --direct --add-rule ipv4 filter IN_public_allow 0 -p tcp -m limit --limit 25/minute --limit-burst 100 -j ACCEPT
+sed -i "s/DefaultZone=.*/DefaultZone=drop/g" /mnt/sysimage/etc/firewalld/firewalld.conf
 %end
 
 %post
@@ -295,9 +323,43 @@ chown root:root /etc/profile.d/vlock-alias.{sh,csh}
 chmod 755 /etc/profile.d/vlock-alias.{sh,csh}
 
 ####
-#tweaks to limits.conf
+#tweaks to sysctl.conf and limits.conf
 ####
 echo -e "*  hard maxlogins 10\nroot soft nofile 10240\nroot hard nofile 68480" >>/etc/security/limits.conf
+echo "net.ipv6.conf.all.disable_ipv6 = 1" |sudo tee -a /etc/sysctl.conf
+echo "net.ipv6.conf.default.disable_ipv6 = 1" |sudo tee -a /etc/sysctl.conf
+echo "net.ipv6.conf.default.accept_redirects = 0" |sudo tee -a /etc/sysctl.conf
+echo "net.ipv6.conf.all.accept_redirects = 0" |sudo tee -a /etc/sysctl.conf
+echo "net.ipv6.conf.all.accept_source_route = 0" |sudo tee -a /etc/sysctl.conf
+echo "net.ipv6.conf.all.accept_ra = 0" >> /etc/sysctl.conf
+echo "net.ipv6.conf.default.accept_ra = 0" >> /etc/sysctl.conf
+echo "net.ipv4.ip_forward = 0" >>/etc/sysctl.conf
+echo "net.ipv4.conf.all.send_redirects = 0" >>/etc/sysctl.conf
+echo "net.ipv4.conf.default.send_redirects = 0" >>/etc/sysctl.conf
+echo "net.ipv4.icmp_ignore_bogus_error_responses = 1" >>/etc/sysctl.conf
+echo "net.ipv4.conf.all.accept_source_route = 0" >>/etc/sysctl.conf
+echo "net.ipv4.conf.all.accept_redirects = 0" >>/etc/sysctl.conf
+echo "net.ipv4.conf.all.log_martians = 1" >>/etc/sysctl.conf
+echo "net.ipv4.conf.default.log_martians = 1" >>/etc/sysctl.conf
+echo "net.ipv4.conf.default.accept_source_route = 0" >>/etc/sysctl.conf
+echo "net.ipv4.conf.default.accept_redirects = 0" >>/etc/sysctl.conf
+echo "net.ipv4.icmp_echo_ignore_broadcasts = 1" >>/etc/sysctl.conf
+echo "net.ipv4.conf.all.rp_filter = 1" >>/etc/sysctl.conf
+echo "net.ipv4.conf.default.rp_filter = 1" >>/etc/sysctl.conf
+echo "net.ipv4.tcp_max_syn_backlog = 1280" >>/etc/sysctl.conf
+echo "net.ipv4.conf.all.rp_filter = 1" >>/etc/sysctl.conf
+echo "net.ipv4.conf.default.rp_filter = 1" >>/etc/sysctl.conf
+echo "net.ipv4.tcp_timestamps = 0" >>/etc/sysctl.conf
+echo "net.ipv4.tcp_sack = 0" >>/etc/sysctl.conf
+echo "net.ipv4.tcp_syncookies = 1" >>/etc/sysctl.conf
+echo "net.core.rmem_max = 8388608" >>/etc/sysctl.conf
+echo "net.core.wmem_max = 8388608" >>/etc/sysctl.conf
+echo "net.ipv4.tcp_rmem = 4096 87380 8388608" >>/etc/sysctl.conf
+echo "net.ipv4.tcp_wmem = 4096 87380 8388608" >>/etc/sysctl.conf
+echo "fs.file-max = 6815744" >>/etc/sysctl.conf
+echo "kernel.dmesg_restrict = 1" >>/etc/sysctl.conf
+sudo /sbin/sysctl -p /etc/sysctl.conf
+
 
 ####
 #Disable postfix smtp relaying per STIG RHEL-07-040680
